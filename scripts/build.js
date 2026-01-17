@@ -122,41 +122,93 @@ try {
   console.log('\n🔨 Building MuJoCo WASM...');
   console.log('This may take several minutes...\n');
 
-  // Source files relative to mujocoDir
+  // Source files based on MuJoCo's CMakeLists.txt structure
+  // All paths are relative to mujocoDir
   const sourceFiles = [
+    // User API (C++)
     'src/user/user_api.cc',
-    'src/user/user_objects.cc',
-    'src/user/model.cc',
-    'src/xml/xml_native.cc',
-    'src/xml/xml_numeric.cc',
-    'src/engine/engine_engine.cc',
-    'src/engine/engine_io.cc',
-    'src/engine/engine_solver.cc',
-    'src/engine/engine_util_blas.cc',
-    'src/engine/engine_util_misc.cc',
-    'src/engine/engine_util_solve.cc',
-    'src/engine/engine_util_sparse.cc',
-    'src/engine/engine_callback.cc',
-    'src/engine/engine_plugin.cc',
+    'src/user/user_cache.cc',
     'src/user/user_composite.cc',
+    'src/user/user_flexcomp.cc',
+    'src/user/user_mesh.cc',
+    'src/user/user_model.cc',
+    'src/user/user_objects.cc',
+    'src/user/user_resource.cc',
+    'src/user/user_util.cc',
+    'src/user/user_vfs.cc',
+    'src/user/user_init.c',  // C file
+
+    // XML (C++)
+    'src/xml/xml_api.cc',
+    'src/xml/xml_base.cc',
+    'src/xml/xml_global.cc',
+    'src/xml/xml.cc',
+    'src/xml/xml_native_reader.cc',
+    'src/xml/xml_numeric_format.cc',
+    'src/xml/xml_native_writer.cc',
+    'src/xml/xml_urdf.cc',
+    'src/xml/xml_util.cc',
+
+    // Engine (mixed C and C++)
+    'src/engine/engine_crossplatform.cc',
+    'src/engine/engine_plugin.cc',
+    'src/engine/engine_callback.c',
+    'src/engine/engine_collision_box.c',
+    'src/engine/engine_collision_convex.c',
+    'src/engine/engine_collision_driver.c',
+    'src/engine/engine_collision_gjk.c',
+    'src/engine/engine_collision_primitive.c',
+    'src/engine/engine_collision_sdf.c',
+    'src/engine/engine_core_constraint.c',
+    'src/engine/engine_core_util.c',
+    'src/engine/engine_core_smooth.c',
+    'src/engine/engine_derivative.c',
+    'src/engine/engine_derivative_fd.c',
+    'src/engine/engine_forward.c',
+    'src/engine/engine_inverse.c',
+    'src/engine/engine_init.c',
+    'src/engine/engine_island.c',
+    'src/engine/engine_io.c',
+    'src/engine/engine_memory.c',
+    'src/engine/engine_name.c',
+    'src/engine/engine_passive.c',
+    'src/engine/engine_print.c',
+    'src/engine/engine_ray.c',
+    'src/engine/engine_sensor.c',
+    'src/engine/engine_setconst.c',
+    'src/engine/engine_sleep.c',
+    'src/engine/engine_solver.c',
+    'src/engine/engine_support.c',
+    'src/engine/engine_util_blas.c',
+    'src/engine/engine_util_errmem.c',
+    'src/engine/engine_util_misc.c',
+    'src/engine/engine_util_solve.c',
+    'src/engine/engine_util_sparse.c',
+    'src/engine/engine_util_spatial.c',
+    'src/engine/engine_vis_init.c',
+    'src/engine/engine_vis_interact.c',
+    'src/engine/engine_vis_visualize.c',
+
+    // Thread (C++)
+    'src/thread/thread_pool.cc',
+    'src/thread/thread_task.cc',
   ];
 
   // Include directories relative to mujocoDir
   const includeDirs = [
     'include',
     'src',
-    'dist',
-  ].map(dir => `-I${dir}`);
+  ];
 
   const buildCommand = [
     'emcc',
     ...sourceFiles,
-    ...includeDirs,
+    ...includeDirs.map(dir => `-I${dir}`),
     ...EMSCRIPTEN_FLAGS,
   ].join(' ');
 
   console.log('Build command:');
-  console.log(buildCommand.substring(0, 200) + '...\n');
+  console.log(buildCommand.substring(0, 300) + '...\n');
 
   // Execute from mujocoDir so all relative paths work correctly
   execSync(buildCommand, {
