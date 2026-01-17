@@ -41,23 +41,6 @@ function getMujocoVersion() {
 }
 
 const MUJOCO_VERSION = getMujocoVersion();
-const EMSCRIPTEN_FLAGS = [
-  '-O3',                              // Optimization level
-  '-s WASM=1',                        // Generate WebAssembly
-  '-s ALLOW_MEMORY_GROWTH=1',         // Allow memory to grow
-  '-s MODULARIZE=1',                  // Create ES6 module
-  '-s EXPORT_NAME="\'MuJoCo\'"',      // Export name
-  '-s EXPORT_ES6=1',                  // Export ES6 module
-  '-s USE_ES6_IMPORT_META=0',         // Not using import.meta
-  '-s NO_DYNAMIC_EXECUTION=1',        // No eval()
-  '-s SINGLE_FILE=0',                 // Separate .wasm file
-  '-s ASSERTIONS=0',                  // Disable assertions (release)
-  '-s DISABLE_EXCEPTION_CATCHING=1',  // Disable exception catching
-  '-fno-exceptions',                  // C++ no exceptions
-  '-std=c++17',                       // C++17 standard
-  '--bind',                           // Use embind
-  '-o', 'dist/mujoco_wasm.js',        // Output file
-];
 
 console.log('🔨 MuJoCo WASM Build Script');
 console.log('=========================\n');
@@ -118,121 +101,67 @@ try {
     console.log('\n✅ MuJoCo source already present');
   }
 
-  // Build MuJoCo WASM
-  console.log('\n🔨 Building MuJoCo WASM...');
+  // Build MuJoCo WASM using official CMake build
+  console.log('\n🔨 Building MuJoCo WASM using official CMake...');
   console.log('This may take several minutes...\n');
 
-  // Source files based on MuJoCo's CMakeLists.txt structure
-  // All paths are relative to mujocoDir
-  const sourceFiles = [
-    // User API (C++)
-    'src/user/user_api.cc',
-    'src/user/user_cache.cc',
-    'src/user/user_composite.cc',
-    'src/user/user_flexcomp.cc',
-    'src/user/user_mesh.cc',
-    'src/user/user_model.cc',
-    'src/user/user_objects.cc',
-    'src/user/user_resource.cc',
-    'src/user/user_util.cc',
-    'src/user/user_vfs.cc',
-    'src/user/user_init.c',  // C file
+  // Create build directory
+  const buildDir = path.join(mujocoDir, 'build');
+  if (fs.existsSync(buildDir)) {
+    fs.rmSync(buildDir, { recursive: true, force: true });
+  }
+  fs.mkdirSync(buildDir, { recursive: true });
 
-    // XML (C++)
-    'src/xml/xml_api.cc',
-    'src/xml/xml_base.cc',
-    'src/xml/xml_global.cc',
-    'src/xml/xml.cc',
-    'src/xml/xml_native_reader.cc',
-    'src/xml/xml_numeric_format.cc',
-    'src/xml/xml_native_writer.cc',
-    'src/xml/xml_urdf.cc',
-    'src/xml/xml_util.cc',
-
-    // Engine (mixed C and C++)
-    'src/engine/engine_crossplatform.cc',
-    'src/engine/engine_plugin.cc',
-    'src/engine/engine_callback.c',
-    'src/engine/engine_collision_box.c',
-    'src/engine/engine_collision_convex.c',
-    'src/engine/engine_collision_driver.c',
-    'src/engine/engine_collision_gjk.c',
-    'src/engine/engine_collision_primitive.c',
-    'src/engine/engine_collision_sdf.c',
-    'src/engine/engine_core_constraint.c',
-    'src/engine/engine_core_util.c',
-    'src/engine/engine_core_smooth.c',
-    'src/engine/engine_derivative.c',
-    'src/engine/engine_derivative_fd.c',
-    'src/engine/engine_forward.c',
-    'src/engine/engine_inverse.c',
-    'src/engine/engine_init.c',
-    'src/engine/engine_island.c',
-    'src/engine/engine_io.c',
-    'src/engine/engine_memory.c',
-    'src/engine/engine_name.c',
-    'src/engine/engine_passive.c',
-    'src/engine/engine_print.c',
-    'src/engine/engine_ray.c',
-    'src/engine/engine_sensor.c',
-    'src/engine/engine_setconst.c',
-    'src/engine/engine_sleep.c',
-    'src/engine/engine_solver.c',
-    'src/engine/engine_support.c',
-    'src/engine/engine_util_blas.c',
-    'src/engine/engine_util_errmem.c',
-    'src/engine/engine_util_misc.c',
-    'src/engine/engine_util_solve.c',
-    'src/engine/engine_util_sparse.c',
-    'src/engine/engine_util_spatial.c',
-    'src/engine/engine_vis_init.c',
-    'src/engine/engine_vis_interact.c',
-    'src/engine/engine_vis_visualize.c',
-
-    // Thread (C++)
-    'src/thread/thread_pool.cc',
-    'src/thread/thread_task.cc',
-  ];
-
-  // Include directories relative to mujocoDir
-  const includeDirs = [
-    'include',
-    'src',
-  ];
-
-  const buildCommand = [
-    'emcc',
-    ...sourceFiles,
-    ...includeDirs.map(dir => `-I${dir}`),
-    ...EMSCRIPTEN_FLAGS,
+  // Configure with CMake using emcmake wrapper
+  console.log('📋 Configuring with CMake (emcmake)...');
+  const cmakeArgs = [
+    'emcmake',
+    'cmake',
+    '..',
+    '-DCMAKE_BUILD_TYPE=Release',
+    '-DMUJOCO_BUILD_WASM=ON',
+    '-DMUJOCO_BUILD_TESTS=OFF',
+    '-DMUJOCO_SIMULATE=OFF',
+    '-DMUJOCO_PYTHON=OFF',
   ].join(' ');
 
-  console.log('Build command:');
-  console.log(buildCommand.substring(0, 300) + '...\n');
-
-  // Execute from mujocoDir so all relative paths work correctly
-  execSync(buildCommand, {
+  execSync(cmakeArgs, {
     stdio: 'inherit',
-    cwd: mujocoDir,
+    cwd: buildDir,
   });
 
-  // Move files to dist directory
-  console.log('\n📦 Packaging files...');
-  const buildDist = path.join(mujocoDir, 'dist');
-  const files = ['mujoco_wasm.js', 'mujoco_wasm.wasm'];
+  // Build
+  console.log('\n🔧 Building with CMake...');
+  execSync('cmake --build . --parallel', {
+    stdio: 'inherit',
+    cwd: buildDir,
+  });
 
+  // Copy WASM files from MuJoCo's official output location
+  console.log('\n📦 Copying WASM files...');
+  const wasmDist = path.join(mujocoDir, 'wasm', 'dist');
+
+  if (!fs.existsSync(wasmDist)) {
+    throw new Error(`MuJoCo WASM build output not found at: ${wasmDist}`);
+  }
+
+  const files = ['mujoco_wasm.js', 'mujoco_wasm.wasm'];
   for (const file of files) {
-    const src = path.join(buildDist, file);
+    const src = path.join(wasmDist, file);
     const dest = path.join('dist', file);
+    if (!fs.existsSync(src)) {
+      throw new Error(`Expected file not found: ${src}`);
+    }
     fs.copyFileSync(src, dest);
     console.log(`  ✅ ${file}`);
   }
 
-  // Copy TypeScript definitions
-  const dtsSource = path.join(mujocoDir, 'wasm', 'dist', 'mujoco_wasm.d.ts');
-  if (fs.existsSync(dtsSource)) {
-    fs.copyFileSync(dtsSource, 'dist/mujoco_wasm.d.ts');
-    console.log('  ✅ mujoco_wasm.d.ts');
+  // Copy TypeScript definitions if they exist
+  const dtsFile = 'mujoco_wasm.d.ts';
+  const dtsSrc = path.join(wasmDist, dtsFile);
+  if (fs.existsSync(dtsSrc)) {
+    fs.copyFileSync(dtsSrc, path.join('dist', dtsFile));
+    console.log(`  ✅ ${dtsFile}`);
   }
 
   // Generate .npm package info
