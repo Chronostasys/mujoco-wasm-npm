@@ -136,14 +136,6 @@ jobs:
           # GitHub Packages registry
           # For public npm: use NPM_TOKEN from secrets
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: MuJoCo WASM ${{ steps.get_version.outputs.VERSION }}
-          draft: false
-          prerelease: false
-
   publish-public-npm:
     name: Publish to Public NPM (Optional)
     needs: build-wasm
