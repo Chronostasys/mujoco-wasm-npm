@@ -12,7 +12,6 @@
   "scripts": {
     "build": "node scripts/build.js",
     "build:docker": "node scripts/build-docker.js",
-    "prepack": "npm run build",
     "test": "node scripts/test.js",
     "clean": "rm -rf dist build"
   },
