@@ -10,7 +10,37 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const MUJOCO_VERSION = '2.3.8';
+// Determine MuJoCo version to use
+// If triggered by a tag in CI, use the tag version; otherwise use 'main' branch
+function getMujocoVersion() {
+  // Check if we're in a CI environment with a tag trigger
+  const githubRef = process.env.GITHUB_REF || '';
+  const githubRefName = process.env.GITHUB_REF_NAME || '';
+  
+  // If triggered by a tag (format: refs/tags/v2.3.8 or v2.3.8)
+  if (githubRef.startsWith('refs/tags/')) {
+    let tagVersion = githubRef.replace('refs/tags/', '');
+    // Remove 'v' prefix if present (v2.3.8 -> 2.3.8)
+    if (tagVersion.startsWith('v')) {
+      tagVersion = tagVersion.substring(1);
+    }
+    console.log(`📌 Detected tag trigger: ${githubRef}, using MuJoCo version: ${tagVersion}`);
+    return tagVersion;
+  } else if (githubRefName && githubRefName.startsWith('v')) {
+    let tagVersion = githubRefName;
+    // Remove 'v' prefix if present
+    if (tagVersion.startsWith('v')) {
+      tagVersion = tagVersion.substring(1);
+    }
+    console.log(`📌 Detected tag from GITHUB_REF_NAME: ${githubRefName}, using MuJoCo version: ${tagVersion}`);
+    return tagVersion;
+  }
+  
+  // Default: use 'main' branch for latest version
+  return 'main';
+}
+
+const MUJOCO_VERSION = getMujocoVersion();
 const EMSCRIPTEN_FLAGS = [
   '-O3',                              // Optimization level
   '-s WASM=1',                        // Generate WebAssembly
@@ -31,6 +61,7 @@ const EMSCRIPTEN_FLAGS = [
 
 console.log('🔨 MuJoCo WASM Build Script');
 console.log('=========================\n');
+console.log(`📦 Using MuJoCo version: ${MUJOCO_VERSION}\n`);
 
 try {
   // Check if emscripten is available
@@ -58,10 +89,31 @@ try {
   const mujocoDir = 'build/mujoco';
   if (!fs.existsSync(mujocoDir)) {
     console.log('\n📥 Cloning MuJoCo...');
-    execSync(
-      `git clone --depth 1 --branch ${MUJOCO_VERSION} https://github.com/google-deepmind/mujoco.git ${mujocoDir}`,
-      { stdio: 'inherit' }
-    );
+    try {
+      // First, try cloning with the specific version as tag/branch
+      execSync(
+        `git clone --depth 1 --branch ${MUJOCO_VERSION} https://github.com/google-deepmind/mujoco.git ${mujocoDir}`,
+        { stdio: 'inherit' }
+      );
+    } catch (error) {
+      // If that fails, clone main branch and checkout the tag
+      console.log(`⚠️  Branch/tag ${MUJOCO_VERSION} not found, cloning main branch...`);
+      execSync(
+        `git clone --depth 1 https://github.com/google-deepmind/mujoco.git ${mujocoDir}`,
+        { stdio: 'inherit' }
+      );
+      // Try to checkout the tag if it exists
+      try {
+        execSync(
+          `cd ${mujocoDir} && git fetch --depth 1 origin tag ${MUJOCO_VERSION} 2>/dev/null && git checkout ${MUJOCO_VERSION}`,
+          { stdio: 'inherit' }
+        );
+        console.log(`✅ Checked out tag ${MUJOCO_VERSION}`);
+      } catch (tagError) {
+        // If tag doesn't exist either, just use main branch
+        console.log(`⚠️  Tag ${MUJOCO_VERSION} not found, using main branch`);
+      }
+    }
   } else {
     console.log('\n✅ MuJoCo source already present');
   }
