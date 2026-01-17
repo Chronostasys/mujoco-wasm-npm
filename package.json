@@ -1,6 +1,6 @@
 {
   "name": "@your-org/mujoco-wasm",
-  "version": "2.3.8",
+  "version": "2.3.9",
   "description": "MuJoCo physics engine compiled to WebAssembly with JavaScript bindings",
   "main": "dist/mujoco_wasm.js",
   "types": "dist/mujoco_wasm.d.ts",
