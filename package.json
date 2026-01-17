@@ -1,5 +1,5 @@
 {
-  "name": "@your-org/mujoco-wasm",
+  "name": "@chronostasys/mujoco-wasm",
   "version": "2.3.9",
   "description": "MuJoCo physics engine compiled to WebAssembly with JavaScript bindings",
   "main": "dist/mujoco_wasm.js",
@@ -16,6 +16,9 @@
     "test": "node scripts/test.js",
     "clean": "rm -rf dist build"
   },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "keywords": [
     "mujoco",
     "physics",
@@ -25,16 +28,16 @@
     "robotics",
     "reinforcement-learning"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Chronostasys",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/mujoco-wasm.git"
+    "url": "git+https://github.com/Chronostasys/mujoco-wasm-npm.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/mujoco-wasm/issues"
+    "url": "https://github.com/Chronostasys/mujoco-wasm-npm/issues"
   },
-  "homepage": "https://github.com/your-org/mujoco-wasm#readme",
+  "homepage": "https://github.com/Chronostasys/mujoco-wasm-npm#readme",
   "engines": {
     "node": ">=16.0.0"
   },
