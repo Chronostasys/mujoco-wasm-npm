@@ -1,0 +1,46 @@
+{
+  "name": "@your-org/mujoco-wasm",
+  "version": "2.3.8",
+  "description": "MuJoCo physics engine compiled to WebAssembly with JavaScript bindings",
+  "main": "dist/mujoco_wasm.js",
+  "types": "dist/mujoco_wasm.d.ts",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:docker": "node scripts/build-docker.js",
+    "prepack": "npm run build",
+    "test": "node scripts/test.js",
+    "clean": "rm -rf dist build"
+  },
+  "keywords": [
+    "mujoco",
+    "physics",
+    "simulation",
+    "wasm",
+    "webassembly",
+    "robotics",
+    "reinforcement-learning"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/mujoco-wasm.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/mujoco-wasm/issues"
+  },
+  "homepage": "https://github.com/your-org/mujoco-wasm#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "devDependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/exec": "^1.1.1",
+    "octokit": "^3.1.2"
+  }
+}

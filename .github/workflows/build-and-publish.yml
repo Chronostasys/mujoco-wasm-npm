@@ -1,0 +1,199 @@
+name: Build and Publish MuJoCo WASM
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  EMSCRIPTEN_VERSION: '3.1.50'
+
+jobs:
+  build-wasm:
+    name: Build MuJoCo WASM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Emscripten
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git /tmp/emsdk
+          cd /tmp/emsdk
+          ./emsdk install ${{ env.EMSCRIPTEN_VERSION }}
+          ./emsdk activate ${{ env.EMSCRIPTEN_VERSION }}
+          echo "EMSDK_PATH=/tmp/emsdk" >> $GITHUB_ENV
+          echo "EMSDK=/tmp/emsdk" >> $GITHUB_ENV
+          echo "EM_CACHE=/tmp/emscripten-cache" >> $GITHUB_ENV
+
+      - name: Cache Emscripten
+        uses: actions/cache@v3
+        with:
+          path: |
+            /tmp/emscripten-cache
+            /tmp/emsdk
+          key: emscripten-${{ env.EMSCRIPTEN_VERSION }}-${{ hashFiles('**/emscripten-version.txt') }}
+          restore-keys: |
+            emscripten-${{ env.EMSCRIPTEN_VERSION }}-
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            python3 \
+            git \
+            cmake
+
+      - name: Build MuJoCo WASM
+        run: |
+          source /tmp/emsdk/emsdk_env.sh
+          npm run build
+
+      - name: Verify build
+        run: |
+          ls -lh dist/
+          echo "Checking WASM file..."
+          test -f dist/mujoco_wasm.wasm && echo "✅ WASM file exists"
+          test -f dist/mujoco_wasm.js && echo "✅ JS wrapper exists"
+          test -f dist/mujoco_wasm.d.ts && echo "✅ TypeScript definitions exist"
+
+      - name: Run tests
+        run: npm test
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: mujoco-wasm-dist
+          path: dist/
+          retention-days: 7
+
+  publish-npm:
+    name: Publish to NPM Registry
+    needs: build-wasm
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: mujoco-wasm-dist
+          path: dist/
+
+      - name: Verify artifacts
+        run: |
+          ls -lh dist/
+          test -f dist/mujoco_wasm.wasm
+          test -f dist/mujoco_wasm.js
+          test -f dist/mujoco_wasm.d.ts
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Update package.json version
+        run: |
+          npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+
+      - name: Publish to GitHub NPM Registry
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GitHub Packages registry
+          # For public npm: use NPM_TOKEN from secrets
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: MuJoCo WASM ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+
+  publish-public-npm:
+    name: Publish to Public NPM (Optional)
+    needs: build-wasm
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: mujoco-wasm-dist
+          path: dist/
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Update package.json version
+        run: |
+          npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+
+      - name: Publish to public NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        if: env.NPM_TOKEN != ''
+
+  create-branch-build:
+    name: Build on Branch (Development)
+    needs: build-wasm
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: mujoco-wasm-dist
+          path: dist/
+
+      - name: Upload to GitHub Pages (Preview)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: preview/${{ github.sha }}
+        if: github.ref == 'refs/heads/main'

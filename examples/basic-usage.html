@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MuJoCo WASM - Basic Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #log {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MuJoCo WASM - Basic Example</h1>
+    <p>Simple falling box simulation using MuJoCo physics engine.</p>
+
+    <div>
+        <button id="loadBtn">Load MuJoCo</button>
+        <button id="startBtn" disabled>Start Simulation</button>
+        <button id="resetBtn" disabled>Reset</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="sim-canvas"></canvas>
+    </div>
+
+    <div id="log"></div>
+
+    <script type="module">
+        import loadMujoco from '@your-org/mujoco-wasm';
+
+        let mujoco = null;
+        let model = null;
+        let data = null;
+        let animationId = null;
+
+        const log = document.getElementById('log');
+        const loadBtn = document.getElementById('loadBtn');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        function addLog(message) {
+            const entry = document.createElement('div');
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Simple 2D rendering
+        function render() {
+            const canvas = document.getElementById('sim-canvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Clear
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw ground
+            ctx.fillStyle = '#888';
+            ctx.fillRect(0, height - 50, width, 50);
+
+            if (data) {
+                const x = data.qpos[0];
+                const z = data.qpos[2];
+
+                const scaleX = 50;
+                const scaleY = 50;
+                const centerX = width / 2;
+                const groundY = height - 50;
+
+                const screenX = centerX + x * scaleX;
+                const screenY = groundY - z * scaleY;
+
+                // Draw box
+                ctx.fillStyle = '#4ec9b0';
+                ctx.fillRect(screenX - 25, screenY - 25, 50, 50);
+
+                // Draw info
+                ctx.fillStyle = '#333';
+                ctx.font = '14px monospace';
+                ctx.fillText(`Position: (${x.toFixed(2)}, ${z.toFixed(2)})`, 10, 20);
+            }
+        }
+
+        loadBtn.addEventListener('click', async () => {
+            try {
+                addLog('Loading MuJoCo WASM...');
+                loadBtn.disabled = true;
+
+                mujoco = await loadMujoco();
+                addLog('✅ MuJoCo loaded successfully!');
+
+                // Create simple model
+                const xml = `
+<mujoco model="box">
+  <option timestep="0.002" gravity="0 0 -9.81"/>
+  <worldbody>
+    <geom name="floor" type="plane" size="100 100 1"/>
+    <body name="box" pos="0 0 2">
+      <geom name="box" type="box" size="0.2 0.2 0.2" rgba="0.3 0.8 0.5 1"/>
+      <joint type="free"/>
+    </body>
+  </worldbody>
+</mujoco>
+                `;
+
+                mujoco.FS.writeFile('/tmp/box.xml', xml);
+                model = mujoco.MjModel.mj_loadXML('/tmp/box.xml');
+                data = new mujoco.MjData(model);
+
+                mujoco.FS.unlink('/tmp/box.xml');
+
+                addLog('✅ Model loaded');
+                addLog(`   nq: ${model.nq}, nv: ${model.nv}, nu: ${model.nu}`);
+
+                startBtn.disabled = false;
+                resetBtn.disabled = false;
+
+                render();
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`);
+                console.error(error);
+                loadBtn.disabled = false;
+            }
+        });
+
+        startBtn.addEventListener('click', () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                startBtn.textContent = 'Start Simulation';
+                animationId = null;
+            } else {
+                startBtn.textContent = 'Stop Simulation';
+                addLog('▶️ Starting simulation...');
+
+                function step() {
+                    for (let i = 0; i < 10; i++) {
+                        mujoco.mj_step(model, data);
+                    }
+                    render();
+                    animationId = requestAnimationFrame(step);
+                }
+
+                step();
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            if (model && data) {
+                mujoco.mj_resetData(model, data);
+                addLog('🔄 Simulation reset');
+                render();
+            }
+        });
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>

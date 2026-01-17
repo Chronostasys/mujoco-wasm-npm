@@ -1,0 +1,33 @@
+# Source files
+src/
+scripts/
+.github/
+build/
+
+# Development files
+*.md
+!README.md
+.gitignore
+.npmignore
+
+# Tests
+test/
+tests/
+*.test.js
+
+# CI/CD
+.github/
+
+# Git
+.git/
+.gitattributes
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
