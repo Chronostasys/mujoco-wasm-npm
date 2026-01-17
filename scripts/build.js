@@ -122,6 +122,7 @@ try {
   console.log('\n🔨 Building MuJoCo WASM...');
   console.log('This may take several minutes...\n');
 
+  // Source files relative to mujocoDir
   const sourceFiles = [
     'src/user/user_api.cc',
     'src/user/user_objects.cc',
@@ -138,27 +139,29 @@ try {
     'src/engine/engine_callback.cc',
     'src/engine/engine_plugin.cc',
     'src/user/user_composite.cc',
-  ].map(f => path.join(mujocoDir, f));
-
-  const includeDirs = [
-    path.join(mujocoDir, 'include'),
-    path.join(mujocoDir, 'src'),
-    '-I' + path.join(mujocoDir, 'dist'),
   ];
+
+  // Include directories relative to mujocoDir
+  const includeDirs = [
+    'include',
+    'src',
+    'dist',
+  ].map(dir => `-I${dir}`);
 
   const buildCommand = [
     'emcc',
     ...sourceFiles,
-    ...includeDirs.map(dir => `-I${dir}`),
+    ...includeDirs,
     ...EMSCRIPTEN_FLAGS,
   ].join(' ');
 
   console.log('Build command:');
   console.log(buildCommand.substring(0, 200) + '...\n');
 
+  // Execute from mujocoDir so all relative paths work correctly
   execSync(buildCommand, {
     stdio: 'inherit',
-    cwd: path.join(mujocoDir, 'dist'),
+    cwd: mujocoDir,
   });
 
   // Move files to dist directory
