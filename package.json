@@ -1,5 +1,5 @@
 {
-  "name": "@chronostasys/mujoco-wasm",
+  "name": "mujoco-wasm-npm",
   "version": "3.4.0",
   "description": "MuJoCo physics engine compiled to WebAssembly with JavaScript bindings",
   "main": "dist/mujoco_wasm.js",
@@ -14,9 +14,6 @@
     "build:docker": "node scripts/build-docker.js",
     "test": "node scripts/test.js",
     "clean": "rm -rf dist build"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
   },
   "keywords": [
     "mujoco",
