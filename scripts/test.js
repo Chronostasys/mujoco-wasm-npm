@@ -56,11 +56,13 @@ try {
   console.log('\n📘 Validating TypeScript definitions...');
   const dtsContent = fs.readFileSync('dist/mujoco_wasm.d.ts', 'utf-8');
 
+  // MainModule, MjModel, MjData should be exported
+  // Note: loadMujoco is the Emscripten module loader (EXPORT_NAME),
+  // it needs to be manually declared by users: declare function loadMujoco(): Promise<MainModule>
   const requiredExports = [
     'MainModule',
     'MjModel',
     'MjData',
-    'loadMujoco',
   ];
 
   for (const exp of requiredExports) {
