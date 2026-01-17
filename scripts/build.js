@@ -52,7 +52,7 @@ const EMSCRIPTEN_FLAGS = [
   '-s NO_DYNAMIC_EXECUTION=1',        // No eval()
   '-s SINGLE_FILE=0',                 // Separate .wasm file
   '-s ASSERTIONS=0',                  // Disable assertions (release)
-  '-s EXCEPTION_CATCHING=0',          // Disable exceptions
+  '-s DISABLE_EXCEPTION_CATCHING=1',  // Disable exception catching
   '-fno-exceptions',                  // C++ no exceptions
   '-std=c++17',                       // C++17 standard
   '--bind',                           // Use embind
