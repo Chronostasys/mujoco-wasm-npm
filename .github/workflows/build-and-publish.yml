@@ -118,7 +118,13 @@ jobs:
 
       - name: Update package.json version
         run: |
-          npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          TARGET_VERSION="${{ steps.get_version.outputs.VERSION }}"
+          if [ "$CURRENT_VERSION" != "$TARGET_VERSION" ]; then
+            npm version $TARGET_VERSION --no-git-tag-version
+          else
+            echo "Version already at $TARGET_VERSION, skipping update"
+          fi
 
       - name: Publish to GitHub NPM Registry
         run: npm publish
@@ -163,7 +169,13 @@ jobs:
 
       - name: Update package.json version
         run: |
-          npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          TARGET_VERSION="${{ steps.get_version.outputs.VERSION }}"
+          if [ "$CURRENT_VERSION" != "$TARGET_VERSION" ]; then
+            npm version $TARGET_VERSION --no-git-tag-version
+          else
+            echo "Version already at $TARGET_VERSION, skipping update"
+          fi
 
       - name: Publish to public NPM
         run: npm publish --access public
