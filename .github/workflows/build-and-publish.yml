@@ -43,7 +43,7 @@ jobs:
           echo "EM_CACHE=/tmp/emscripten-cache" >> $GITHUB_ENV
 
       - name: Cache Emscripten
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             /tmp/emscripten-cache
@@ -78,7 +78,7 @@ jobs:
         run: npm test
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mujoco-wasm-dist
           path: dist/
@@ -101,7 +101,7 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: mujoco-wasm-dist
           path: dist/
@@ -129,12 +129,10 @@ jobs:
           # For public npm: use NPM_TOKEN from secrets
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: MuJoCo WASM ${{ steps.get_version.outputs.VERSION }}
+          tag_name: ${{ github.ref_name }}
+          name: MuJoCo WASM ${{ steps.get_version.outputs.VERSION }}
           draft: false
           prerelease: false
 
@@ -155,7 +153,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: mujoco-wasm-dist
           path: dist/
@@ -185,7 +183,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: mujoco-wasm-dist
           path: dist/
