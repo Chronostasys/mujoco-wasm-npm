@@ -119,10 +119,13 @@ try {
     'cmake',
     '..',
     '-DCMAKE_BUILD_TYPE=Release',
+    '-DCMAKE_CXX_STANDARD=20',
+    '-DCMAKE_CXX_STANDARD_REQUIRED=ON',
     '-DMUJOCO_BUILD_WASM=ON',
     '-DMUJOCO_BUILD_TESTS=OFF',
     '-DMUJOCO_SIMULATE=OFF',
     '-DMUJOCO_PYTHON=OFF',
+    '-DMUJOCO_UI=OFF',
   ].join(' ');
 
   execSync(cmakeArgs, {
